@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 
 export default function Home() {
-  const sentence = "hello you asfas asdfas asdffasf asddfasdfasdfasdf";
+  const sentence = "hello my name is Mohit";
   const [currentCharIndex, setCurrentCharIndex] = useState<number>(0);
   const [inputState, setInputState] = useState<boolean[]>([]);
   const [timer, setTimer] = useState<number>(0);
@@ -86,7 +86,9 @@ export default function Home() {
         {availableTimes.map((time, index) => (
           <button
             key={time}
-            ref={(el) => (buttonRefs.current[index] = el)}
+            ref={(el) => {
+              buttonRefs.current[index] = el;
+            }}
             className={`hover:text-white ${selectedTime === time ? 'text-yellow-500' : ''}`}
             onClick={() => setNewTimer(time, index)}
           >
