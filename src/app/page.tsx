@@ -4,13 +4,28 @@ import { useState, useEffect } from "react";
 export default function Home() {
   const sentence = "hello you asfas asdfas asdffasf asddfasdfasdfasdf";
   const [currentCharIndex, setCurrentCharIndex] = useState<number>(0);
-  const [inputState, setInputState] = useState<string[] | any>([]);
-
+  const [inputState, setInputState] = useState<boolean[]>([]);
+  const [timer, setTimer] = useState<number>(0);
   const checkKeyPress = (a: string, b: string) => a === b;
 
   useEffect(() => {
-    const handleKeyDown = (event: any) => {
+    const interval = setInterval(() => {
+      setTimer(prevTimer=>(prevTimer+1));
+    }, 1000); // Increment every second
+
+    return () => clearInterval(interval); // Clear interval on unmount
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
       const userInput = event.key;
+      if (userInput === "Backspace" || userInput === "Delete") {
+        if (currentCharIndex > 0) {
+          setCurrentCharIndex(currentCharIndex - 1);
+          inputState.pop();
+          return;
+        }
+      }
       const expectedInput = sentence[currentCharIndex];
       const isCorrect = checkKeyPress(userInput, expectedInput);
 
@@ -20,9 +35,7 @@ export default function Home() {
         return newState;
       });
 
-      if (isCorrect) {
-        setCurrentCharIndex((prevIndex) => prevIndex + 1);
-      }
+      setCurrentCharIndex((prevIndex) => prevIndex + 1);
     };
 
     document.addEventListener("keydown", handleKeyDown);
@@ -34,7 +47,10 @@ export default function Home() {
 
   return (
     <div className="flex flex-col h-screen justify-center items-center">
-      <div className="text-gray-400 ">
+      {/* {JSON.stringify(inputState)} */}
+      {JSON.stringify(timer)}
+      {/* {JSON.stringify(currentCharIndex)} */}
+      <div className="text-gray-400">
         {sentence.split("").map((char, index) => {
           let style = "";
 
@@ -42,10 +58,14 @@ export default function Home() {
             style = inputState[index] ? "text-white" : "text-red-500";
           }
           if (index === currentCharIndex) {
-            style = "text-blue-500";
+            style = "blinking-cursor";
           }
           return (
-            <span key={index} className={style}>
+            <span
+              key={index}
+              className={style}
+              style={{ paddingRight: "0.1rem" }}
+            >
               {char}
             </span>
           );

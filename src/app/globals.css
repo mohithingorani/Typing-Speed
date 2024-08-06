@@ -3,5 +3,19 @@
 @tailwind utilities;
 
 body {
-    background-color: #323437;   
+  background-color: #323437;
+}
+
+.blinking-cursor {
+  border-left: 0.1rem solid #e2b714;
+  animation: blink-animation 1s steps(2, start) infinite;
+}
+
+@keyframes blink-animation {
+  0% {
+    border-color: #e2b714;
+  }
+  100% {
+    border-color: transparent;
+  }
 }
