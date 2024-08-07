@@ -1,9 +1,10 @@
 "use client";
 import Image from "next/image";
+import { redirect, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 
 export default function Home() {
-  const sentence = "Lorem ipsum dolor sit amet consectetur, adipisicing elit. Perferendis assumenda, eius laboriosam consectetur illum corporis, vel ullam suscipit quae fuga aperiam? Libero vel quidem nostrum. Unde exercitationem mollitia obcaecati dolorem. Accusamus excepturi at numquam perspiciatis voluptate, in est deleniti quae mollitia itaque nisi obcaecati eius, sint hic ipsum. Perferendis dignissimos quia neque. Nam provident quibusdam quam sapiente expedita magnam facilis, nesciunt aut sequi voluptatum.";
+  const sentence = "Lorem ipsum dolor sit amet consectetur.";
   const [currentCharIndex, setCurrentCharIndex] = useState<number>(0);
   const [inputState, setInputState] = useState<boolean[]>([]);
   const [timer, setTimer] = useState<number>(0);
@@ -13,6 +14,9 @@ export default function Home() {
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [capsLock, setCapsLock] = useState<boolean>(false);
   const availableTimes = [15, 30, 60, 120];
+  const [accuracy,setAccuracy] = useState<number | null>(null)
+
+  const router = useRouter();
 
   const setNewTimer = (time: number, index: number) => {
     setSelectedTime(time);
@@ -21,6 +25,7 @@ export default function Home() {
     setCurrentCharIndex(0); // Reset character index
     setInputState([]); // Reset input state
     setStartTimer(false); // Ensure the timer is not running
+    
 
     // Remove focus from the button after setting the timer
     if (buttonRefs.current[index]) {
@@ -103,10 +108,19 @@ export default function Home() {
     setTimer(0); // Reset timer
     setHasStartedTyping(false); // Reset typing status
     setStartTimer(false); // Ensure the timer is not running
+    handleAccuracy();
+    
+
   };
 
+  const handleAccuracy = ()=>{
+    const accuracy = Math.trunc((inputState.filter((input) => input).length / sentence.length)*100);
+    setAccuracy(accuracy);
+    router.push(`/accuracy?score=${accuracy}`);
+  }
   return (
     <div className="flex flex-col h-screen justify-center items-center">
+      {JSON.stringify(accuracy)}
       {capsLock && (
         <button className="flex items-center justify-between gap-1 bg-[#e2b714] text-[#323437] px-3 py-1.5 rounded-md select-none mb-2">
           <div>
