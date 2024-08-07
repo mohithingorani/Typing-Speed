@@ -11,13 +11,16 @@ export default function Home() {
   const [startTimer, setStartTimer] = useState(false);
   const [hasStartedTyping, setHasStartedTyping] = useState(false);
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const [capsLock,setCapsLock] = useState<boolean>(false);
+  const [capsLock, setCapsLock] = useState<boolean>(false);
   const availableTimes = [15, 30, 60, 120];
 
   const setNewTimer = (time: number, index: number) => {
     setSelectedTime(time);
     setTimer(0); // Reset the timer to 0
     setHasStartedTyping(false); // Reset typing status
+    setCurrentCharIndex(0); // Reset character index
+    setInputState([]); // Reset input state
+    setStartTimer(false); // Ensure the timer is not running
 
     // Remove focus from the button after setting the timer
     if (buttonRefs.current[index]) {
@@ -94,14 +97,24 @@ export default function Home() {
     });
   });
 
+  const handleRetry = () => {
+    setCurrentCharIndex(0); // Reset character index
+    setInputState([]); // Reset input state
+    setTimer(0); // Reset timer
+    setHasStartedTyping(false); // Reset typing status
+    setStartTimer(false); // Ensure the timer is not running
+  };
+
   return (
     <div className="flex flex-col h-screen justify-center items-center">
-      {capsLock &&<button className="flex items-center justify-between gap-1 bg-[#e2b714] text-[#323437] px-3 py-1.5 rounded-md select-none mb-2">
-        <div>
-          <Image alt="img" width="10" height="30" src="/lock.svg" />
-        </div>
-        <div className="text-xs">Caps Lock</div>
-      </button>}
+      {capsLock && (
+        <button className="flex items-center justify-between gap-1 bg-[#e2b714] text-[#323437] px-3 py-1.5 rounded-md select-none mb-2">
+          <div>
+            <Image alt="img" width="10" height="30" src="/lock.svg" />
+          </div>
+          <div className="text-xs">Caps Lock</div>
+        </button>
+      )}
       <div className="flex justify-center gap-2 text-xs text-gray-400">
         {availableTimes.map((time, index) => (
           <button
@@ -140,6 +153,16 @@ export default function Home() {
             </span>
           );
         })}
+      </div>
+      <div>
+        <Image
+          src="/sync.png"
+          alt="retry"
+          width="20"
+          height="20"
+          className="pt-2 cursor-pointer"
+          onClick={handleRetry}
+        />
       </div>
     </div>
   );
