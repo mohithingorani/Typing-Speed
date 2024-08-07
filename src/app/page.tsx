@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 
 export default function Home() {
@@ -10,7 +11,7 @@ export default function Home() {
   const [startTimer, setStartTimer] = useState(false);
   const [hasStartedTyping, setHasStartedTyping] = useState(false);
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
-
+  const [capsLock,setCapsLock] = useState<boolean>(false);
   const availableTimes = [15, 30, 60, 120];
 
   const setNewTimer = (time: number, index: number) => {
@@ -54,6 +55,9 @@ export default function Home() {
       }
 
       const userInput = event.key;
+      if (userInput === "Shift") {
+        return;
+      }
       if (userInput === "Backspace" || userInput === "Delete") {
         if (currentCharIndex > 0) {
           setCurrentCharIndex(currentCharIndex - 1);
@@ -80,8 +84,24 @@ export default function Home() {
     };
   }, [currentCharIndex, sentence, hasStartedTyping, selectedTime]);
 
+  useEffect(() => {
+    document.addEventListener("keydown", function (event) {
+      if (event.getModifierState && event.getModifierState("CapsLock")) {
+        setCapsLock(true);
+      } else {
+        setCapsLock(false);
+      }
+    });
+  });
+
   return (
     <div className="flex flex-col h-screen justify-center items-center">
+      {capsLock &&<button className="flex items-center justify-between gap-1 bg-[#e2b714] text-[#323437] px-3 py-1.5 rounded-md select-none mb-2">
+        <div>
+          <Image alt="img" width="10" height="30" src="/lock.svg" />
+        </div>
+        <div className="text-xs">Caps Lock</div>
+      </button>}
       <div className="flex justify-center gap-2 text-xs text-gray-400">
         {availableTimes.map((time, index) => (
           <button
@@ -89,7 +109,9 @@ export default function Home() {
             ref={(el) => {
               buttonRefs.current[index] = el;
             }}
-            className={`hover:text-white ${selectedTime === time ? 'text-yellow-500' : ''}`}
+            className={`hover:text-white ${
+              selectedTime === time ? "text-yellow-500" : ""
+            }`}
             onClick={() => setNewTimer(time, index)}
           >
             {time}s
