@@ -3,7 +3,7 @@ import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 
 export default function Home() {
-  const sentence = "hello my name is Mohit";
+  const sentence = "Lorem ipsum dolor sit amet consectetur, adipisicing elit. Perferendis assumenda, eius laboriosam consectetur illum corporis, vel ullam suscipit quae fuga aperiam? Libero vel quidem nostrum. Unde exercitationem mollitia obcaecati dolorem. Accusamus excepturi at numquam perspiciatis voluptate, in est deleniti quae mollitia itaque nisi obcaecati eius, sint hic ipsum. Perferendis dignissimos quia neque. Nam provident quibusdam quam sapiente expedita magnam facilis, nesciunt aut sequi voluptatum.";
   const [currentCharIndex, setCurrentCharIndex] = useState<number>(0);
   const [inputState, setInputState] = useState<boolean[]>([]);
   const [timer, setTimer] = useState<number>(0);
@@ -120,7 +120,7 @@ export default function Home() {
       </div>
       <div className="mb-4 text-xl text-gray-300">Time: {timer} seconds</div>
 
-      <div className="text-gray-400">
+      <div className="text-gray-400 text-sm px-32">
         {sentence.split("").map((char, index) => {
           let style = "";
 
