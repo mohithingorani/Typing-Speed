@@ -1,7 +1,9 @@
 "use client";
+export const dynamic = "force-dynamic"; 
 import { useSearchParams } from "next/navigation";
 
 export default function Accuracy() {
+  
   const searchParams = useSearchParams();
   const score = searchParams.get("score");
   if (!score) return <div>No score provided.</div>;
