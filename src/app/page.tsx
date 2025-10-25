@@ -116,7 +116,6 @@ export default function Home() {
   const handleAccuracy = ()=>{
     const accuracy = Math.trunc((inputState.filter((input) => input).length / sentence.length)*100);
     setAccuracy(accuracy);
-    router.push(`/accuracy?score=${accuracy}`);
   }
   return (
     <div className="flex flex-col h-screen justify-center items-center">
