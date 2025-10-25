@@ -1,182 +1,203 @@
 "use client";
 import Image from "next/image";
-import { redirect, useRouter } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { TestHeader } from "./components/TestHeader";
+import { TimeSelector } from "./components/TimeSelector";
+import { CapsLockWarning } from "./components/Warning";
+import { TestControls } from "./components/TestControls";
+import { TestInstructions } from "./components/Instructions";
+import { TypingArea } from "./components/TypingArea";
 
 export default function Home() {
-  const sentence = "Lorem ipsum dolor sit amet consectetur.";
-  const [currentCharIndex, setCurrentCharIndex] = useState<number>(0);
+  const SENTENCE = "AFTER CREATING SEPERATE BOOLEAN INPUT STATE";
+  const AVAILABLE_TIMES = [15, 30, 60, 120];
+  const [currentCharIndex, setCurrentCharIndex] = useState(0);
   const [inputState, setInputState] = useState<boolean[]>([]);
-  const [timer, setTimer] = useState<number>(0);
+  const [timer, setTimer] = useState(0);
   const [selectedTime, setSelectedTime] = useState<number | null>(null);
-  const [startTimer, setStartTimer] = useState(false);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [hasStartedTyping, setHasStartedTyping] = useState(false);
-  const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const [capsLock, setCapsLock] = useState<boolean>(false);
-  const availableTimes = [15, 30, 60, 120];
-  const [accuracy,setAccuracy] = useState<number | null>(null)
+  const [isCapsLockOn, setIsCapsLockOn] = useState(false);
+  const [accuracy, setAccuracy] = useState<number | null>(null);
+  const timeButtonRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
-  const router = useRouter();
+  const wordsPerMinute = calculateWordsPerMinute();
+  const progressPercentage = selectedTime ? (timer / selectedTime) * 100 : 0;
+  const isTestComplete = selectedTime && timer >= selectedTime;
 
-  const setNewTimer = (time: number, index: number) => {
-    setSelectedTime(time);
-    setTimer(0); // Reset the timer to 0
-    setHasStartedTyping(false); // Reset typing status
-    setCurrentCharIndex(0); // Reset character index
-    setInputState([]); // Reset input state
-    setStartTimer(false); // Ensure the timer is not running
-    
-
-    // Remove focus from the button after setting the timer
-    if (buttonRefs.current[index]) {
-      buttonRefs.current[index]?.blur();
-    }
-  };
-
+  // Timer management
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
+    if (!isTimerRunning || !selectedTime || timer >= selectedTime) return;
 
-    if (startTimer && timer < (selectedTime || 0)) {
-      interval = setInterval(() => {
-        setTimer((prevTimer) => {
-          if (prevTimer + 1 >= (selectedTime || 0)) {
-            setStartTimer(false); // Stop the timer once it reaches the set time
-            clearInterval(interval!);
-          }
-          return prevTimer + 1;
-        });
-      }, 1000);
-    }
+    const interval = setInterval(() => {
+      setTimer((prev) => {
+        const newTime = prev + 1;
+        if (newTime >= selectedTime) {
+          setIsTimerRunning(false);
+          calculateAndSetAccuracy();
+        }
+        return newTime;
+      });
+    }, 1000);
 
-    return () => {
-      if (interval) clearInterval(interval); // Clear interval on unmount or when timer stops
-    };
-  }, [startTimer, timer, selectedTime]);
+    return () => clearInterval(interval);
+  }, [isTimerRunning, timer, selectedTime]);
 
-  const checkKeyPress = (a: string, b: string) => a === b;
-
+  // Keyboard event handlers
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!hasStartedTyping && selectedTime !== null) {
-        setStartTimer(true); // Start the timer when the user starts typing
-        setHasStartedTyping(true);
+      handleCapsLockDetection(event);
+
+      if (shouldIgnoreKey(event.key)) return;
+
+      if (!hasStartedTyping && selectedTime) {
+        startTypingTest();
       }
 
-      const userInput = event.key;
-      if (userInput === "Shift") {
+      if (event.key === "Backspace") {
+        handleBackspace();
         return;
       }
-      if (userInput === "Backspace" || userInput === "Delete") {
-        if (currentCharIndex > 0) {
-          setCurrentCharIndex(currentCharIndex - 1);
-          setInputState((prevState) => prevState.slice(0, -1)); // Remove last input state
-        }
-        return;
+
+      if (isSingleCharacterKey(event.key)) {
+        handleCharacterInput(event.key);
       }
-      const expectedInput = sentence[currentCharIndex];
-      const isCorrect = checkKeyPress(userInput, expectedInput);
-
-      setInputState((prevState) => {
-        const newState = [...prevState];
-        newState[currentCharIndex] = isCorrect;
-        return newState;
-      });
-
-      setCurrentCharIndex((prevIndex) => prevIndex + 1);
     };
 
     document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [currentCharIndex, hasStartedTyping, selectedTime]);
 
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [currentCharIndex, sentence, hasStartedTyping, selectedTime]);
-
+  // Caps lock detection
   useEffect(() => {
-    document.addEventListener("keydown", function (event) {
-      if (event.getModifierState && event.getModifierState("CapsLock")) {
-        setCapsLock(true);
-      } else {
-        setCapsLock(false);
-      }
-    });
-  });
+    const handleCapsLockChange = (event: KeyboardEvent) => {
+      setIsCapsLockOn(event.getModifierState?.("CapsLock") ?? false);
+    };
 
-  const handleRetry = () => {
-    setCurrentCharIndex(0); // Reset character index
-    setInputState([]); // Reset input state
-    setTimer(0); // Reset timer
-    setHasStartedTyping(false); // Reset typing status
-    setStartTimer(false); // Ensure the timer is not running
-    handleAccuracy();
-    
+    document.addEventListener("keydown", handleCapsLockChange);
+    return () => document.removeEventListener("keydown", handleCapsLockChange);
+  }, []);
 
+  // Core functions
+  const startTypingTest = () => {
+    setIsTimerRunning(true);
+    setHasStartedTyping(true);
   };
 
-  const handleAccuracy = ()=>{
-    const accuracy = Math.trunc((inputState.filter((input) => input).length / sentence.length)*100);
+  const handleCharacterInput = (pressedKey: string) => {
+    const expectedChar = SENTENCE[currentCharIndex];
+    const isCorrect = pressedKey === expectedChar;
+
+    setInputState((prev) => {
+      const newState = [...prev];
+      newState[currentCharIndex] = isCorrect;
+      return newState;
+    });
+
+    setCurrentCharIndex((prev) => prev + 1);
+  };
+
+  const handleBackspace = () => {
+    if (currentCharIndex > 0) {
+      setCurrentCharIndex((prev) => prev - 1);
+      setInputState((prev) => prev.slice(0, -1));
+    }
+  };
+
+  const calculateAndSetAccuracy = () => {
+    const correctChars = inputState.filter(Boolean).length;
+    const accuracy = Math.round((correctChars / SENTENCE.length) * 100);
     setAccuracy(accuracy);
+  };
+
+  function calculateWordsPerMinute() {
+    if (timer === 0) return 0;
+    const wordCount = SENTENCE.split(" ").length;
+    const minutes = timer / 60;
+    return Math.round(wordCount / minutes);
   }
+
+  // UI actions
+  const selectTimeLimit = (time: number, index: number) => {
+    setSelectedTime(time);
+    resetTest();
+    setAccuracy(null);
+    blurTimeButton(index);
+  };
+
+  const resetTest = () => {
+    setCurrentCharIndex(0);
+    setInputState([]);
+    setTimer(0);
+    setHasStartedTyping(false);
+    setIsTimerRunning(false);
+  };
+
+  const retryTest = () => {
+    resetTest();
+    setAccuracy(null);
+  };
+
+  // Helper functions
+  const shouldIgnoreKey = (key: string) => key === "Shift";
+
+  const isSingleCharacterKey = (key: string) => key.length === 1;
+
+  const handleCapsLockDetection = (event: KeyboardEvent) => {
+    setIsCapsLockOn(event.getModifierState?.("CapsLock") ?? false);
+  };
+
+  const blurTimeButton = (index: number) => {
+    timeButtonRefs.current[index]?.blur();
+  };
+
+  const getCharacterClassName = (index: number): string => {
+    if (index < currentCharIndex) {
+      return inputState[index] ? "text-correct" : "text-incorrect";
+    }
+    if (index === currentCharIndex) {
+      return "text-current blinking-cursor";
+    }
+    return "text-upcoming";
+  };
+
   return (
-    <div className="flex flex-col h-screen justify-center items-center">
-      {JSON.stringify(accuracy)}
-      {capsLock && (
-        <button className="flex items-center justify-between gap-1 bg-[#e2b714] text-[#323437] px-3 py-1.5 rounded-md select-none mb-2">
-          <div>
-            <Image alt="img" width="10" height="30" src="/lock.svg" />
-          </div>
-          <div className="text-xs">Caps Lock</div>
-        </button>
-      )}
-      <div className="flex justify-center gap-2 text-xs text-gray-400">
-        {availableTimes.map((time, index) => (
-          <button
-            key={time}
-            ref={(el) => {
-              buttonRefs.current[index] = el;
-            }}
-            className={`hover:text-white ${
-              selectedTime === time ? "text-yellow-500" : ""
-            }`}
-            onClick={() => setNewTimer(time, index)}
-          >
-            {time}s
-          </button>
-        ))}
-      </div>
-      <div className="mb-4 text-xl text-gray-300">Time: {timer} seconds</div>
+    <div className="flex flex-col h-screen justify-center items-center bg-background px-6">
+      <TestHeader
+        timer={timer}
+        wordsPerMinute={wordsPerMinute}
+        accuracy={accuracy}
+      />
 
-      <div className="text-gray-400 text-sm px-32">
-        {sentence.split("").map((char, index) => {
-          let style = "";
+      <TimeSelector
+        availableTimes={AVAILABLE_TIMES}
+        selectedTime={selectedTime}
+        timeButtonRefs={timeButtonRefs}
+        onTimeSelect={selectTimeLimit}
+      />
 
-          if (index < currentCharIndex) {
-            style = inputState[index] ? "text-white" : "text-red-500";
-          }
-          if (index === currentCharIndex) {
-            style = "blinking-cursor";
-          }
-          return (
-            <span
-              key={index}
-              className={style}
-              style={{ paddingRight: "0.1rem" }}
-            >
-              {char}
-            </span>
-          );
-        })}
-      </div>
-      <div>
-        <Image
-          src="/sync.png"
-          alt="retry"
-          width="20"
-          height="20"
-          className="pt-2 cursor-pointer"
-          onClick={handleRetry}
-        />
-      </div>
+      <CapsLockWarning isVisible={isCapsLockOn} />
+
+      <TypingArea
+        sentence={SENTENCE}
+        currentCharIndex={currentCharIndex}
+        inputState={inputState}
+        getCharacterClassName={getCharacterClassName}
+      />
+
+      <TestControls
+        progressPercentage={progressPercentage}
+        selectedTime={selectedTime}
+        hasStartedTyping={hasStartedTyping}
+        onRetry={retryTest}
+        isTestComplete={isTestComplete}
+      />
+
+      {/* Footer */}
+      <TestInstructions />
+      <div className="text-white">Accuracy : {JSON.stringify(accuracy)}</div>
+
+      <div className="text-white">Words Per Minute : {JSON.stringify(wordsPerMinute)}</div>
     </div>
   );
 }
